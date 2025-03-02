@@ -1,4 +1,3 @@
-
 from flask import request
 from flask_restx import Resource, Namespace
 from .manager import create_simulation, get_simulation, delete_simulation
@@ -258,7 +257,9 @@ def setup_routes(api):
                 cell = data['cell']
                 
                 congested_cells = simulation.detect_congestion()
-                if cell not in congested_cells:
+                # Convert cell coordinates to tuple for proper comparison
+                cell_tuple = tuple(cell)
+                if not any(tuple(congested) == cell_tuple for congested in congested_cells):
                     return {
                         'success': False,
                         'message': f"Cell {cell} is not congested"

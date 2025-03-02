@@ -1,4 +1,3 @@
-# traffic_simulation/agents/__init__.py
 from .base import TrafficAgent
 from .police import Police
 from .drone import Drone

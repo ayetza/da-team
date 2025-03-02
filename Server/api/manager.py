@@ -1,4 +1,3 @@
-# traffic_simulation/api/manager.py
 import uuid
 from core.simulation import TrafficSimulation
 
