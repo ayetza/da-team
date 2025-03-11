@@ -8,19 +8,6 @@ def create_api_models(api):
         'num_motorcycles': fields.Integer(required=False, default=5, min=0, max=30)
     })
 
-    police_movement_model = api.model('PoliceMovementRequest', {
-        'position': fields.List(fields.Integer, required=True)
-    })
-
-    issue_ticket_model = api.model('IssueTicketRequest', {
-        'vehicle_id': fields.Integer(required=True),
-        'vehicle_type': fields.String(required=True, enum=['car', 'motorcycle'])
-    })
-
-    resolve_congestion_model = api.model('ResolveCongestionRequest', {
-        'cell': fields.List(fields.Integer, required=True)
-    })
-
     error_model = api.model('ErrorResponse', {
         'success': fields.Boolean(default=False),
         'message': fields.String(required=True)
@@ -62,43 +49,10 @@ def create_api_models(api):
         'updated_positions': fields.Raw()
     })
 
-    vehicle_ticket_info = api.model('VehicleTicketInfo', {
-        'id': fields.Integer,
-        'type': fields.String,
-        'original_speed': fields.Integer,
-        'new_speed': fields.Integer
-    })
-
-    issue_ticket_response = api.model('IssueTicketResponse', {
-        'message': fields.String,
-        'vehicle': fields.Nested(vehicle_ticket_info),
-        'ticket_success': fields.Boolean,
-        'tickets_issued_count': fields.Integer
-    })
-
-    affected_vehicle = api.model('AffectedVehicle', {
-        'id': fields.Integer,
-        'type': fields.String,
-        'new_speed': fields.Integer
-    })
-
-    resolve_congestion_response = api.model('ResolveCongestionResponse', {
-        'message': fields.String(default='Congestion resolution attempted'),
-        'success': fields.Boolean,
-        'cell': fields.List(fields.Integer),
-        'vehicles_affected': fields.List(fields.Nested(affected_vehicle)),
-        'congestions_resolved_count': fields.Integer
-    })
-
     return {
         'create_simulation_model': create_simulation_model,
-        'police_movement_model': police_movement_model,
-        'issue_ticket_model': issue_ticket_model,
-        'resolve_congestion_model': resolve_congestion_model,
         'error_model': error_model,
         'simulation_state_model': simulation_state_model,
         'simulation_step_response': simulation_step_response,
-        'issue_ticket_response': issue_ticket_response,
-        'resolve_congestion_response': resolve_congestion_response,
         'movement_results_model': movement_results_model
     }

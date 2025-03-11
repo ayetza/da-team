@@ -1,42 +1,38 @@
 from .base import TrafficAgent
 
-# class Drone(TrafficAgent):
-#     def assist_police(self, vehicles):
-#         collisions = [v for v in vehicles if v.collision]
-        
-#         if collisions:
-#             print("Dron interviniendo para resolver colisiones...")
-#             for vehicle in collisions:
-#                 vehicle.speed = max(vehicle.speed - 1, 0)
-#             for vehicle in collisions:
-#                 vehicle.collision = False
-            
-#             self.movements += 2
-#             print("Colisiones resueltas por el dron.")
-
-
 class Drone(TrafficAgent):
-    """Dron que ayuda a resolver colisiones entre vehiculos"""
-    def assist_police(self, vehicles):
-        """Ayudar a resolver colisiones entre vehiculos"""
-        collisions = [v for v in vehicles if v.collision]
-        resolved_collisions = []
-        
+
+
+    def resolve_collisions_and_congestion(self, model):
+
+
+        """
+        El dron resuelve:
+          - Colisiones (baja velocidad y marca collision=False)
+          - Congestiones (baja velocidad en celdas con >= 3 vehiculos)
+        """
+        collisions = [v for v in (model.cars + model.motorcycles) if v.collision]
         if collisions:
+            print("Dron interviniendo para resolver colisiones...")
             for vehicle in collisions:
-                original_speed = vehicle.speed
                 vehicle.speed = max(vehicle.speed - 1, 0)
-                resolved_collisions.append({
-                    "id": vehicle.id,
-                    "type": vehicle.__class__.__name__.lower(),
-                    "position": vehicle.position,
-                    "original_speed": original_speed,
-                    "new_speed": vehicle.speed
-                })
-                
-            for vehicle in collisions:
                 vehicle.collision = False
-            
-            self.movements += 2
-            return {"success": True, "collisions_resolved": resolved_collisions}
-        return {"success": False, "reason": "No hay colisiones para resolver"}
+            print("Colisiones resueltas por el dron.")
+            self.movements += 1
+
+        congested_cells = model.detect_congestion()
+        if congested_cells:
+            print(f"Dron detecta congestiones en: {congested_cells}")
+            for cell in congested_cells:
+                vehicles_in_cell = [v for v in (model.cars + model.motorcycles) if v.position == cell]
+                for v in vehicles_in_cell:
+                    v.speed = max(v.speed - 1, 0)
+            print("Dron resolvió las congestiones.")
+            self.movements += 1
+
+    def to_dict(self):
+        base_dict = super().to_dict()
+        base_dict.update({
+            "movements": self.movements
+        })
+        return base_dict
