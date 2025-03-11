@@ -1,38 +1,24 @@
 from datetime import datetime
 from agents.police import Police
 from agents.drone import Drone
-from agents.vehicles import Car, Motorcycle
+from agents.car import Car
+from agents.motorcycle import Motorcycle
 from .utils import generate_random_position
 
 class TrafficSimulation:
 
-#     def setup(self):
-#         self.grid_size = 10
 
-#         self.police = Police(self)
-#         self.drone = Drone(self)
-#         self.cars = ap.AgentList(self, 10, Car)
-#         self.motorcycles = ap.AgentList(self, 5, Motorcycle)
-
-#         self.agents = [self.police, self.drone] + list(self.cars) + list(self.motorcycles)
-
-#         occupied_positions = []
-#         for agent in self.agents:
-#             agent.position = self.random_empty_position(occupied_positions)
-#             occupied_positions.append(agent.position)
-
-#         self.task_completed = False
-#         self.task_completion_time = None
-
-    def __init__(self, simulation_id, grid_size=10, num_cars=10, num_motorcycles=5):
+    def __init__(self, simulation_id, grid_size=10, num_cars=5, num_motorcycles=3):
         self.simulation_id = simulation_id
         self.grid_size = grid_size
         self.start_time = datetime.now()
-        self.police = Police()
-        self.drone = Drone()
-        self.cars = [Car(i) for i in range(num_cars)]
-        self.motorcycles = [Motorcycle(i) for i in range(num_motorcycles)]
+        
+        self.police = Police(self)
+        self.drone = Drone(self)
+        self.cars = [Car(i, self) for i in range(num_cars)]
+        self.motorcycles = [Motorcycle(i, self) for i in range(num_motorcycles)]
         self.agents = [self.police, self.drone] + self.cars + self.motorcycles
+        
         self._initialize_positions()
         self.task_completed = False
         self.task_completion_time = None
@@ -44,109 +30,89 @@ class TrafficSimulation:
         for agent in self.agents:
             agent.position = generate_random_position(self.grid_size, occupied_positions)
             occupied_positions.append(agent.position)
-
-#     # Deteccion de congestion en celdas con 3 o más vehiculos
-#     def detect_congestion(self):
-#         position_counts = {}
-#         for vehicle in self.cars + self.motorcycles:
-#             pos = vehicle.position
-#             position_counts[pos] = position_counts.get(pos, 0) + 1
-#         return [pos for pos, count in position_counts.items() if count >= 3]
     
     def detect_congestion(self):
+        """Celdas con 3 o más vehículos se consideran congestionadas."""
         position_counts = {}
         for vehicle in self.cars + self.motorcycles:
             pos = vehicle.position
-            position_counts[pos] = position_counts.get(pos, 0) + 1
-        return [pos for pos, count in position_counts.items() if count >= 3]
+            if pos in position_counts:
+                position_counts[pos] += 1
+            else:
+                position_counts[pos] = 1
+        return [list(pos) for pos, count in position_counts.items() if count >= 3]
     
-#     def step(self):
-#         all_vehicles = self.cars + self.motorcycles
-        
-#         for vehicle in all_vehicles:
-#             vehicle.accelerate()
-#             vehicle.move()
-#             vehicle.obey_instructions()
-            
-#             if vehicle.speed > vehicle.speed_limit:
-#                 self.police.issue_ticket(vehicle)
-
-#         self.police.request_drone_assistance()
-        
-#         # Deteccion y manejo de congestiones
-#         congested_cells = self.detect_congestion()
-#         if congested_cells:
-#             print(f"¡Congestiones detectadas en celdas: {congested_cells}!")
-#             all_resolved = True
-#             for cell in congested_cells:
-#                 if not self.police.resolve_congestion(cell):
-#                     all_resolved = False
-            
-#             if all_resolved:
-#                 self.police.failed_congestions = 0
-#                 print("Todas las congestiones resueltas.")
-#             else:
-#                 self.police.failed_congestions += 1
-#                 print(f"Fallos consecutivos en resolver congestiones: {self.police.failed_congestions}")
-                
-#             if self.police.failed_congestions >= 3:
-#                 print("Simulación terminada: Tres fallos consecutivos en resolver congestiones.")
-#                 self.stop()
-#         else:
-#             self.police.failed_congestions = 0
-        
-#         # Verificar finalizacion de tarea
-#         if not any(v.collision for v in all_vehicles) and \
-#            not any(v.speed > v.speed_limit for v in all_vehicles):
-#             if not self.task_completed:
-#                 self.task_completed = True
-#                 self.task_completion_time = self.t
     
     def step(self):
-        self.current_step += 1
         movement_results = {
-            "cars_moved": 0,
-            "motorcycles_moved": 0,
-            "collisions_detected": 0
+            'cars_moved': 0,
+            'motorcycles_moved': 0,
+            'collisions_detected': 0,
+            'congested_cells': [],
+            'game_over': False,
+            'reason': None,
+            'task_completed': self.task_completed
         }
-        
-        updated_positions = {"cars": {}, "motorcycles": {}}
-        
-        for car in self.cars:
-            car.accelerate()
-            car.move(self.grid_size)
-            car.obey_instructions()
-            updated_positions["cars"][car.id] = car.position
-            movement_results["cars_moved"] += 1
-        
-        for motorcycle in self.motorcycles:
-            motorcycle.accelerate()
-            motorcycle.move(self.grid_size)
-            motorcycle.obey_instructions()
-            updated_positions["motorcycles"][motorcycle.id] = motorcycle.position
-            movement_results["motorcycles_moved"] += 1
-        
-        self._detect_collisions()
-        movement_results["collisions_detected"] = sum(1 for v in self.cars + self.motorcycles if v.collision)
-        
+
+        for vehicle in (self.cars + self.motorcycles):
+            vehicle.accelerate()
+            old_pos = vehicle.position
+            vehicle.move()
+            if old_pos != vehicle.position:
+                if isinstance(vehicle, Car):
+                    movement_results['cars_moved'] += 1
+                else:
+                    movement_results['motorcycles_moved'] += 1
+            vehicle.obey_instructions()
+
+        self.police.step()
+
+        for vehicle in (self.cars + self.motorcycles):
+            if vehicle.speed > vehicle.speed_limit:
+                self.police.issue_ticket(vehicle)
+
         congested_cells = self.detect_congestion()
-        movement_results["congested_cells"] = congested_cells
+        movement_results['congested_cells'] = congested_cells
         
-        if self.failed_congestions >= 3:
-            movement_results["game_over"] = True
-            movement_results["reason"] = "Three consecutive failures to resolve congestion"
+        if congested_cells:
+            print(f"¡Aún quedan congestiones en celdas: {congested_cells}!")
+            self.police.failed_congestions += 1
+            print(f"Fallos consecutivos: {self.police.failed_congestions}")
+            if self.police.failed_congestions >= 3:
+                print("Simulación terminada: Tres fallos consecutivos en resolver congestiones.")
+                movement_results['game_over'] = True
+                movement_results['reason'] = "Tres fallos consecutivos en resolver congestiones"
+                return movement_results
+        else:
+            self.police.failed_congestions = 0
+
+        collisions = [v for v in (self.cars + self.motorcycles) if v.collision]
+        movement_results['collisions_detected'] = len(collisions)
         
-        all_vehicles = self.cars + self.motorcycles
-        if not any(v.collision for v in all_vehicles) and not any(v.speed > v.speed_limit for v in all_vehicles):
+        any_collision = bool(collisions)
+        any_overspeed = any((v.speed > v.speed_limit) for v in (self.cars + self.motorcycles))
+
+        if not any_collision and not any_overspeed:
             if not self.task_completed:
                 self.task_completed = True
-                self.task_completion_time = self.current_step
-                movement_results["task_completed"] = True
-        
-        return {
-            "movement_results": movement_results,
-            "updated_positions": updated_positions
-        }
+                self.task_completion_time = datetime.now()
+                movement_results['task_completed'] = True
+
+        self.current_step += 1
+        return movement_results
+
+    def end(self):
+        total_movements = sum(agent.movements for agent in self.agents)
+        print("\n--- Resultados Finales ---")
+        print(f"Tiempo de completado: {self.task_completion_time if self.task_completion_time else 'No completado'}")
+        print(f"Movimientos totales: {total_movements}")
+        print(f"Movimientos del policia: {self.police.movements}")
+        print(f"Multas emitidas: {len(self.police.tickets_issued)}")
+        for (veh, old_s, new_s) in self.police.tickets_issued:
+            print(f" - {type(veh).__name__} multado en {veh.position}: {old_s} -> {new_s}")
+        print(f"Congestiones resueltas (por policía): {self.police.congestion_resolved}")
+        print(f"Solicitudes de dron: {self.police.drone_requests}")
+
     
     def _detect_collisions(self):
 
@@ -161,6 +127,7 @@ class TrafficSimulation:
                     other.collision = True
     
     def get_state(self):
+        total_movements = sum(agent.movements for agent in self.agents)
         return {
             "simulation_id": self.simulation_id,
             "grid": {
@@ -176,8 +143,10 @@ class TrafficSimulation:
             "congested_cells": self.detect_congestion(),
             "status": {
                 "task_completed": self.task_completed,
-                "task_completion_time": self.task_completion_time,
-                "failed_congestions": self.failed_congestions
+                "task_completion_time": self.task_completion_time.isoformat() if self.task_completion_time else None,
+                "failed_congestions": self.failed_congestions,
+                "total_movements": total_movements,
+                "start_time": self.start_time.isoformat()
             }
         }
 
