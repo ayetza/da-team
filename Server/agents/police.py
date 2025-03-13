@@ -8,7 +8,6 @@ class Police(TrafficAgent):
         self.congestion_resolved = 0
         self.drone_requests = 0
         self.failed_congestions = 0
-        self.speed = 1  # Police moves at a constant speed of 1
 
         self.alpha = 0.1
         self.gamma = 0.9
@@ -112,40 +111,6 @@ class Police(TrafficAgent):
             self.movements += 1
             print(f"Multa emitida a {type(vehicle).__name__} en {vehicle.position}: {original_speed} -> {vehicle.speed}")
 
-    def move(self):
-        """
-        Move the police agent to an adjacent cell in the grid.
-        Movement is prioritized towards areas with vehicles.
-        """
-        if not self.model:
-            return
-            
-        # Get all possible adjacent positions
-        possible_moves = [
-            (self.position[0] + dx, self.position[1] + dy)
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        ]
-        
-        # Filter moves to stay within grid bounds
-        valid_moves = [
-            pos for pos in possible_moves
-            if 0 <= pos[0] < self.model.grid_size and 0 <= pos[1] < self.model.grid_size
-        ]
-        
-        if valid_moves:
-            # Prioritize moves towards vehicles if any are nearby
-            vehicles = self.model.cars + self.model.motorcycles
-            vehicle_positions = [v.position for v in vehicles]
-            
-            # If there are vehicles in adjacent cells, move towards one of them
-            adjacent_vehicle_positions = [pos for pos in valid_moves if pos in vehicle_positions]
-            if adjacent_vehicle_positions:
-                self.position = random.choice(adjacent_vehicle_positions)
-            else:
-                self.position = random.choice(valid_moves)
-            
-            self.movements += 1
-
     def step(self):
         """
         1) El policía observa el estado (colisiones, congestiones).
@@ -154,9 +119,6 @@ class Police(TrafficAgent):
         4) Emite multas (opcional hacerlo antes o después).
         5) Calcula reward y actualiza Q.
         """
-        # First move the police agent
-        self.move()
-        
         state = self.get_state()
         action = self.choose_action(state)
 
