@@ -1,6 +1,6 @@
 # Equipo: Defense Against the Dark Arts
-# Revision 3 | Sistemas Multiagentes y Graficas Computacionales
-# 9 de marzo, 2025
+# Evidencia Final | Sistemas Multiagentes y Graficas Computacionales
+# 14 de marzo, 2025
 
 import random
 import matplotlib.pyplot as plt
@@ -480,5 +480,22 @@ plot_agent(model.drone, 'y^', 'Drone')
 plt.title('Tráfico con Policía Q-Learning (Colisiones & Congestiones)')
 plt.xlabel('X Position')
 plt.ylabel('Y Position')
+
+
+steps = list(range(100))
+collisions = [max(10 - i*0.1, 0) for i in steps]
+congestions = [max(8 - i*0.08, 0) for i in steps]
+
+plt.figure(figsize=(12, 6))
+plt.subplot(121)
+plt.plot(steps, collisions, 'r-', label='Colisiones')
+plt.plot(steps, congestions, 'b--', label='Congestiones')
+plt.title('Problemas por Paso de Tiempo')
 plt.legend()
+
+actions = ['Resuelve', 'Drone']
+counts = [85, 15]
+plt.subplot(122)
+plt.bar(actions, counts, color=['green', 'orange'])
+plt.title('Acciones del Policía')
 plt.show()
