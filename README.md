@@ -78,7 +78,7 @@ Defense Against the Dark Arts
 - Fernanda Ríos Juárez- A01656047
 - Álvaro Solano González - A01643948
 - Sebastián Borjas Lizardi - A01748052
-- Lesly Gallegos 
+- Lesly Citlaly Gallegos Acosta - A01563036
 
 
 
